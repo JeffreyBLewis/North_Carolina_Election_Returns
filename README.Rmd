@@ -1,0 +1,53 @@
+---
+title: "North Carolina precinct-level election returns"
+author: "Jeff Lewis"
+date: "20 January 2022"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(targets)
+```
+
+[This is a preliminary work in progress. Use at your own risk.]
+
+## Overview
+
+This repository contains code to download and parse precinct-level election returns from the state of North Carolina.  The code is written in [`R`](https://www.r-project.org/) and uses the [`targets`](https://books.ropensci.org/targets/) pipeline toolkit to manage the production of the data.
+
+The all of parsed and de-normalized are contained in the file `csv/NC_precinct_level_election_returns.csv.gz` in this repository.
+
+The following two commands can be used to re-ingest and re-parse the original source files found on the North Carolina State Board of Elections' [webpages](https://www.ncsbe.gov/results-data/election-results/historical-election-results-data).
+
+```{r eval=FALSE}
+source("_targets.R")
+tar_make()
+```
+
+## Variables and unit of analysis
+
+The variables contained in the data are as follows:
+
+```{r echo=FALSE}
+tar_load(election_results)
+glimpse(election_results)
+```
+
+Each row shows the number of votes cast in the given precinct in the given contest for the given candidate. The votes for each candidate cast by each mode of voting are reported in separate variables (`election_day`, `one_stop`, `absentee_by_mail`, and  `provisional`) as well as in total (`total_votes`).  Overall, the data contain `r format(NROW(election_results), big.mark=",")` records across `r length(unique(election_results$election_date))` elections, `r format(length(unique(election_results$contest)), big.mark=",")` contests, and `r format(length(unique(paste(election_results$county, election_results$contest))), big.mark=",")` precincts.   
+
+The variable `vote_for` indicates (when available) the number of candidates in the given contest that a voter could select.
+
+## Elections Covered
+
+The elections included in the dataset are the following:
+```{r echo=FALSE}
+election_results %>%
+  count(election_date) %>%
+  mutate(election_date =  strptime(election_date, "%m/%d/%Y")) %>%
+  rename(`Election Date`= election_date, Records=n) %>%
+  arrange(desc(`Election Date`)) %>%
+  knitr::kable()
+```
+
